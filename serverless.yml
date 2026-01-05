@@ -1,0 +1,103 @@
+service: aws-mission-control-services
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  stage: dev
+  region: us-east-2
+  profile: melu
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - ec2:StartInstances
+            - ec2:StopInstances
+          Resource: "*"
+        - Effect: Allow
+          Action:
+            - ec2:DescribeInstances
+          Resource: "*"
+        - Effect: Allow
+          Action:
+            - ce:GetCostAndUsage
+          Resource: "*"
+
+functions:
+  manageInstance:
+    handler: index.handler
+    description: Start or Stop the Melu EC2 instance
+    events:
+      - http:
+          path: instances/manage
+          method: post
+          cors: true
+          authorizer:
+            name: VerifyJwt
+            type: COGNITO_USER_POOLS
+            arn:
+              Fn::GetAtt:
+                - UserPool
+                - Arn
+
+  listInstances:
+    handler: list.handler
+    description: List EC2 instances and their status
+    events:
+      - http:
+          path: instances
+          method: get
+          cors: true
+          authorizer:
+            name: VerifyJwt
+            type: COGNITO_USER_POOLS
+            arn:
+              Fn::GetAtt:
+                - UserPool
+                - Arn
+
+  getCosts:
+    handler: costs.handler
+    description: Get monthly AWS costs by service
+    events:
+      - http:
+          path: costs
+          method: get
+          cors: true
+          authorizer:
+            name: VerifyJwt
+            type: COGNITO_USER_POOLS
+            arn:
+              Fn::GetAtt:
+                - UserPool
+                - Arn
+
+resources:
+  Resources:
+    UserPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        UserPoolName: ${self:service}-user-pool-${self:provider.stage}
+        UsernameAttributes:
+          - email
+        AutoVerifiedAttributes:
+          - email
+
+    UserPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        ClientName: ${self:service}-user-pool-client-${self:provider.stage}
+        GenerateSecret: false
+        UserPoolId:
+          Ref: UserPool
+        ExplicitAuthFlows:
+          - ALLOW_USER_SRP_AUTH
+          - ALLOW_REFRESH_TOKEN_AUTH
+
+  Outputs:
+    UserPoolId:
+      Value:
+        Ref: UserPool
+    UserPoolClientId:
+      Value:
+        Ref: UserPoolClient

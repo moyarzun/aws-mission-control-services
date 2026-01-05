@@ -1,0 +1,263 @@
+{
+  "/Users/moyarzun/melu/lambda_services/melu-ec2-control/serverless.yml": {
+    "versionFramework": "4.29.0",
+    "servicePath": "/Users/moyarzun/melu/lambda_services/melu-ec2-control/serverless.yml",
+    "serviceConfigFileName": "serverless.yml",
+    "service": {
+      "service": "melu-ec2-control",
+      "provider": {
+        "name": "aws",
+        "runtime": "nodejs20.x",
+        "stage": "dev",
+        "region": "us-east-2",
+        "profile": "melu",
+        "iam": {
+          "role": {
+            "statements": [
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "ec2:StartInstances",
+                  "ec2:StopInstances"
+                ],
+                "Resource": "*"
+              },
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "ec2:DescribeInstances"
+                ],
+                "Resource": "*"
+              },
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "ce:GetCostAndUsage"
+                ],
+                "Resource": "*"
+              }
+            ]
+          }
+        },
+        "versionFunctions": true
+      },
+      "functions": {
+        "manageInstance": {
+          "handler": "index.handler",
+          "description": "Start or Stop the Melu EC2 instance",
+          "events": [
+            {
+              "http": {
+                "path": "instances/manage",
+                "method": "post",
+                "cors": true,
+                "authorizer": {
+                  "name": "VerifyJwt",
+                  "type": "COGNITO_USER_POOLS",
+                  "arn": {
+                    "Fn::GetAtt": [
+                      "UserPool",
+                      "Arn"
+                    ]
+                  }
+                }
+              }
+            }
+          ],
+          "name": "melu-ec2-control-dev-manageInstance"
+        },
+        "listInstances": {
+          "handler": "list.handler",
+          "description": "List EC2 instances and their status",
+          "events": [
+            {
+              "http": {
+                "path": "instances",
+                "method": "get",
+                "cors": true,
+                "authorizer": {
+                  "name": "VerifyJwt",
+                  "type": "COGNITO_USER_POOLS",
+                  "arn": {
+                    "Fn::GetAtt": [
+                      "UserPool",
+                      "Arn"
+                    ]
+                  }
+                }
+              }
+            }
+          ],
+          "name": "melu-ec2-control-dev-listInstances"
+        },
+        "getCosts": {
+          "handler": "costs.handler",
+          "description": "Get monthly AWS costs by service",
+          "events": [
+            {
+              "http": {
+                "path": "costs",
+                "method": "get",
+                "cors": true,
+                "authorizer": {
+                  "name": "VerifyJwt",
+                  "type": "COGNITO_USER_POOLS",
+                  "arn": {
+                    "Fn::GetAtt": [
+                      "UserPool",
+                      "Arn"
+                    ]
+                  }
+                }
+              }
+            }
+          ],
+          "name": "melu-ec2-control-dev-getCosts"
+        }
+      },
+      "resources": {
+        "Resources": {
+          "UserPool": {
+            "Type": "AWS::Cognito::UserPool",
+            "Properties": {
+              "UserPoolName": "melu-ec2-control-user-pool-dev",
+              "UsernameAttributes": [
+                "email"
+              ],
+              "AutoVerifiedAttributes": [
+                "email"
+              ]
+            }
+          },
+          "UserPoolClient": {
+            "Type": "AWS::Cognito::UserPoolClient",
+            "Properties": {
+              "ClientName": "melu-ec2-control-user-pool-client-dev",
+              "GenerateSecret": "<REDACTED>",
+              "UserPoolId": {
+                "Ref": "UserPool"
+              },
+              "ExplicitAuthFlows": [
+                "ALLOW_USER_SRP_AUTH",
+                "ALLOW_REFRESH_TOKEN_AUTH"
+              ]
+            }
+          }
+        },
+        "Outputs": {
+          "UserPoolId": {
+            "Value": {
+              "Ref": "UserPool"
+            }
+          },
+          "UserPoolClientId": {
+            "Value": {
+              "Ref": "UserPoolClient"
+            }
+          }
+        }
+      }
+    },
+    "provider": {
+      "name": "aws",
+      "runtime": "nodejs20.x",
+      "stage": "dev",
+      "region": "us-east-2",
+      "profile": "melu",
+      "iam": {
+        "role": {
+          "statements": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2:StartInstances",
+                "ec2:StopInstances"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2:DescribeInstances"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ce:GetCostAndUsage"
+              ],
+              "Resource": "*"
+            }
+          ]
+        }
+      },
+      "versionFunctions": true
+    },
+    "dashboard": {
+      "isEnabledForService": false,
+      "requiredAuthentication": false,
+      "orgFeaturesInUse": null,
+      "orgObservabilityIntegrations": null,
+      "serviceAppId": null,
+      "serviceProvider": null,
+      "instanceParameters": null
+    },
+    "serviceRawFile": "service: melu-ec2-control\n\nprovider:\n  name: aws\n  runtime: nodejs20.x\n  stage: dev\n  region: us-east-2\n  profile: melu\n  iam:\n    role:\n      statements:\n        - Effect: Allow\n          Action:\n            - ec2:StartInstances\n            - ec2:StopInstances\n          Resource: \"*\"\n        - Effect: Allow\n          Action:\n            - ec2:DescribeInstances\n          Resource: \"*\"\n        - Effect: Allow\n          Action:\n            - ce:GetCostAndUsage\n          Resource: \"*\"\n\nfunctions:\n  manageInstance:\n    handler: index.handler\n    description: Start or Stop the Melu EC2 instance\n    events:\n      - http:\n          path: instances/manage\n          method: post\n          cors: true\n          authorizer:\n            name: VerifyJwt\n            type: COGNITO_USER_POOLS\n            arn:\n              Fn::GetAtt:\n                - UserPool\n                - Arn\n\n  listInstances:\n    handler: list.handler\n    description: List EC2 instances and their status\n    events:\n      - http:\n          path: instances\n          method: get\n          cors: true\n          authorizer:\n            name: VerifyJwt\n            type: COGNITO_USER_POOLS\n            arn:\n              Fn::GetAtt:\n                - UserPool\n                - Arn\n\n  getCosts:\n    handler: costs.handler\n    description: Get monthly AWS costs by service\n    events:\n      - http:\n          path: costs\n          method: get\n          cors: true\n          authorizer:\n            name: VerifyJwt\n            type: COGNITO_USER_POOLS\n            arn:\n              Fn::GetAtt:\n                - UserPool\n                - Arn\n\nresources:\n  Resources:\n    UserPool:\n      Type: AWS::Cognito::UserPool\n      Properties:\n        UserPoolName: ${self:service}-user-pool-${self:provider.stage}\n        UsernameAttributes:\n          - email\n        AutoVerifiedAttributes:\n          - email\n\n    UserPoolClient:\n      Type: AWS::Cognito::UserPoolClient\n      Properties:\n        ClientName: ${self:service}-user-pool-client-${self:provider.stage}\n        GenerateSecret: false\n        UserPoolId:\n          Ref: UserPool\n        ExplicitAuthFlows:\n          - ALLOW_USER_SRP_AUTH\n          - ALLOW_REFRESH_TOKEN_AUTH\n\n  Outputs:\n    UserPoolId:\n      Value:\n        Ref: UserPool\n    UserPoolClientId:\n      Value:\n        Ref: UserPoolClient\n",
+    "command": [
+      "info"
+    ],
+    "options": {
+      "verbose": true
+    },
+    "orgId": "2ef6a7e3-656a-47d3-aab3-2af6cd5c1114",
+    "orgName": "oneapp",
+    "userId": "79RwSNdmVC2CVGmCTy",
+    "userName": "oneapp",
+    "serviceProviderAwsAccountId": "510499526538",
+    "serviceProviderAwsCfStackName": "melu-ec2-control-dev",
+    "serviceProviderAwsCfStackId": "arn:aws:cloudformation:us-east-2:510499526538:stack/melu-ec2-control-dev/026a8910-e905-11f0-9e4e-066693e15573",
+    "serviceProviderAwsCfStackCreated": "2026-01-04T00:33:37.464Z",
+    "serviceProviderAwsCfStackUpdated": "2026-01-04T21:28:57.847Z",
+    "serviceProviderAwsCfStackStatus": "UPDATE_COMPLETE",
+    "serviceProviderAwsCfStackOutputs": [
+      {
+        "OutputKey": "ManageInstanceLambdaFunctionQualifiedArn",
+        "OutputValue": "arn:aws:lambda:us-east-2:510499526538:function:melu-ec2-control-dev-manageInstance:5",
+        "Description": "Current Lambda function version",
+        "ExportName": "sls-melu-ec2-control-dev-ManageInstanceLambdaFunctionQualifiedArn"
+      },
+      {
+        "OutputKey": "GetCostsLambdaFunctionQualifiedArn",
+        "OutputValue": "arn:aws:lambda:us-east-2:510499526538:function:melu-ec2-control-dev-getCosts:3",
+        "Description": "Current Lambda function version",
+        "ExportName": "sls-melu-ec2-control-dev-GetCostsLambdaFunctionQualifiedArn"
+      },
+      {
+        "OutputKey": "UserPoolClientId",
+        "OutputValue": "6v91t44davpaic0ntrvk6adf0q"
+      },
+      {
+        "OutputKey": "UserPoolId",
+        "OutputValue": "us-east-2_VUs14JWOE"
+      },
+      {
+        "OutputKey": "ListInstancesLambdaFunctionQualifiedArn",
+        "OutputValue": "arn:aws:lambda:us-east-2:510499526538:function:melu-ec2-control-dev-listInstances:4",
+        "Description": "Current Lambda function version",
+        "ExportName": "sls-melu-ec2-control-dev-ListInstancesLambdaFunctionQualifiedArn"
+      },
+      {
+        "OutputKey": "ServiceEndpoint",
+        "OutputValue": "https://4uvipv74bc.execute-api.us-east-2.amazonaws.com/dev",
+        "Description": "URL of the service endpoint",
+        "ExportName": "sls-melu-ec2-control-dev-ServiceEndpoint"
+      },
+      {
+        "OutputKey": "ServerlessDeploymentBucketName",
+        "OutputValue": "serverless-framework-deployments-us-east-2-559618bb-9f7e",
+        "ExportName": "sls-melu-ec2-control-dev-ServerlessDeploymentBucketName"
+      }
+    ]
+  }
+}
